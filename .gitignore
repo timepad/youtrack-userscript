@@ -1,0 +1,18 @@
+# idea gitignore
+*.ipr
+*.iws
+*.iml
+.idea/commandlinetools
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/dictionaries
+.idea/jsLibraryMappings.xml
+.idea/dataSources.ids
+.idea/dataSources.xml
+.idea/sqlDataSources.xml
+.idea/dynamic.xml
+.idea/uiDesigner.xml
+.idea/blade.xml
+.idea/watcherTasks.xml
+.idea/dataSources.local.xml
+.idea/copyright/
