@@ -3,7 +3,7 @@
 // @description    Adds checkboxes functionality to YouTrack issues
 // @include        https://timepad.myjetbrains.com/youtrack/issue/TP-*
 // ==/UserScript==
-(function() {
+(function () {
     function s4() {
         return Math.floor((1 + Math.random()) * 0x10000)
             .toString(16)
@@ -15,16 +15,16 @@
     }
 
     function checkbox_uid() {
-    	return s4() + s4();
-	}
+        return s4() + s4();
+    }
 
-	function updateCommentData(c) {
-    	// обновляем current
-    	commentsData[c.__yc_key].currentHtml = c.innerHTML;
+    function updateCommentData(c) {
+        // обновляем current
+        commentsData[c.__yc_key].currentHtml = c.innerHTML;
 
-    	// обновляем advanced
-    	prepareAdvancedHtml(c);
-	}
+        // обновляем advanced
+        prepareAdvancedHtml(c);
+    }
 
     function storeCommentData(c) {
         var key = guid(); // generate random id
@@ -40,7 +40,7 @@
     }
 
     function prepareAdvancedHtml(c) {
-        var	data = commentsData[c.__yc_key],
+        var data = commentsData[c.__yc_key],
             advancedHtml = data.advancedHtml;
 
         // заменяем unchecked галочки
@@ -54,48 +54,49 @@
         }
 
         data.advancedHtml = advancedHtml;
-	}
+    }
 
     function replaceBracesToCheckboxes(c) {
-		var	data = commentsData[c.__yc_key],
-			currentHtml = data.advancedHtml,
-			regexp = /YT_CHECKBOX_([0-9a-f]{8})_(UN)?CHECKED/,
-			match;
+        var data = commentsData[c.__yc_key],
+            currentHtml = data.advancedHtml,
+            regexp = /YT_CHECKBOX_([0-9a-f]{8})_(UN)?CHECKED/,
+            match;
 
-		// заменяем на настоящие чекбоксы
-		while (match = currentHtml.match(regexp)) {
-			var id = match[1];
+        // заменяем на настоящие чекбоксы
+        while (match = currentHtml.match(regexp)) {
+            var id = match[1];
 
-			if (match[2]) { // если есть приставка UN
-				currentHtml = currentHtml.replace(regexp, '<input type="checkbox" id="yc_' + id + '">');
-			} else {
+            if (match[2]) { // если есть приставка UN
+                currentHtml = currentHtml.replace(regexp, '<input type="checkbox" id="yc_' + id + '">');
+            } else {
                 currentHtml = currentHtml.replace(regexp, '<input type="checkbox" id="yc_' + id + '" checked="checked">');
-			}
-		}
+            }
+        }
 
-		// запоминаем
-		data.currentHtml = currentHtml;
+        // запоминаем
+        data.currentHtml = currentHtml;
 
-		// применяем на живом комменте
-		c.innerHTML = currentHtml;
-	}
+        // применяем на живом комменте
+        c.innerHTML = currentHtml;
+    }
 
-	var commentsData = { },
-		comments = document.querySelectorAll('.wiki.text');
+    var commentsData = {},
+        comments = document.querySelectorAll('.wiki.text');
 
     // запоминаем о комментах все нужное
-	comments.forEach(storeCommentData);
+    comments.forEach(storeCommentData);
 
-	setTimeout(function() {
-		var comments = document.querySelectorAll('.wiki.text');
+    setTimeout(function () {
+        var comments = document.querySelectorAll('.wiki.text');
 
-		comments.forEach(function (c) {
-			if (!c.__yc_key) {
-				storeCommentData(c);
-			}
+        comments.forEach(function (c) {
+            if (!c.__yc_key) {
+                storeCommentData(c);
+            }
 
             updateCommentData(c);
-			replaceBracesToCheckboxes(c);
+            replaceBracesToCheckboxes(c);
         });
-	}, 1000);
+    }, 1000);
+
 })();
