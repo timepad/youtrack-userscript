@@ -20,18 +20,100 @@
     }
 
     /**
+     * Класс для работы с чекбоксом
+     */
+    class Checkbox {
+        constructor() {
+            this.id = Unique.id();
+        }
+
+        /**
+         * Проверяет, добавили ли мы уже ноду
+         * @return {boolean}
+         */
+        hasNode() {
+            return !!this.node;
+        }
+
+        /**
+         * Запоминает ноду в объекте
+         * @param node
+         */
+        setNode(node) {
+            this.node = node;
+            this.node.__checkbox_id = this.id;
+        }
+
+        /**
+         * Устанавливает коллбек на изменение
+         */
+        setCallback() {
+            this.node.addEventListener('change', this.checkboxChanged);
+        }
+
+        /**
+         * Метод, который вызывается при изменении состояния чекбокса
+         */
+        checkboxChanged() {
+            console.log('checkbox changed');
+        }
+    }
+
+    /**
+     * Хранилище чекбоксов
+     */
+    class CheckboxStore {
+        constructor() {
+            this.checkboxes = {};
+        }
+
+        add(c) {
+            this.checkboxes[c.id] = c;
+        }
+
+        /**
+         * Изначально объекты-чекбоксы создаются пустыми, они содержат только id
+         * Этот метод добавляет им ноду и вешает колбек на ее изменение
+         */
+        saveCheckboxNodes() {
+            let checkboxes = this.checkboxes;
+
+            for (let id in checkboxes) {
+                if (checkboxes.hasOwnProperty(id)) {
+                    let checkbox = checkboxes[id];
+
+                    // если еще не запомнили ноду
+                    if (!checkbox.hasNode()) {
+                        let node = document.getElementById(id);
+
+                        // запоминаем
+                        checkbox.setNode(node);
+
+                        // вешаем коллбек
+                        checkbox.setCallback();
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * Класс для работы с комментарием
      */
     class Comment {
-        constructor(c) {
+        constructor(node) {
             this.id = Unique.id();
 
-            this.node = c;
+            this.node = node;
             this.node.__comment_id = this.id;
 
-            this.currentHtml = c.innerHTML;
-            this.preparedHtml = c.innerHTML;
+            this.currentHtml = node.innerHTML;
+            this.preparedHtml = node.innerHTML;
 
+            // создаем пустое хранилище чекбоксов
+            this.checkboxStore = new CheckboxStore();
+
+            // сразу подготавливаем коммент
             this.prepareHtml();
         }
 
@@ -43,13 +125,27 @@
 
             // заменяем unchecked галочки
             while (html.match(/_\[ ]/)) {
-                html = html.replace(/_\[ ]/, `YT_CHECKBOX_${Unique.id()}_UNCHECKED`);
+                // нашли еще не распарсенный чекбокс, создаем новый
+                let checkbox = new Checkbox();
+
+                // добавляем в хранилище
+                this.checkboxStore.add(checkbox);
+
+                // заменяем в html
+                html = html.replace(/_\[ ]/, `YT_CHECKBOX_${checkbox.id}_UNCHECKED`);
             }
 
             // заменяем checked галочки
             // xх - латинский и кириллический
             while (html.match(/_\[[xх]]/)) {
-                html = html.replace(/_\[[xх]]/, `YT_CHECKBOX_${Unique.id()}_CHECKED`);
+                // нашли еще не распарсенный чекбокс, создаем новый
+                let checkbox = new Checkbox();
+
+                // добавляем в хранилище
+                this.checkboxStore.add(checkbox);
+
+                // заменяем в html
+                html = html.replace(/_\[[xх]]/, `YT_CHECKBOX_${checkbox.id}_CHECKED`);
             }
 
             this.preparedHtml = html;
@@ -68,18 +164,22 @@
                 let id = match[1];
 
                 if (match[2]) { // если есть приставка UN
-                    html = html.replace(regexp, `<input type="checkbox" id="${id}" class="youtrack_checkbox">`);
+                    html = html.replace(regexp, `<input type="checkbox" id="${id}">`);
                 } else {
-                    html = html.replace(regexp, `<input type="checkbox" id="${id}" class="youtrack_checkbox" checked="checked">`);
+                    html = html.replace(regexp, `<input type="checkbox" id="${id}" checked="checked">`);
                 }
             }
 
             // запоминаем
             this.currentHtml = html;
 
-            // если что-то изменилось, заменяем
+            // если что-то изменилось
             if (this.node.innerHTML !== html) {
+                // заменяем html
                 this.node.innerHTML = html;
+
+                // добавляем колбеки к новым чекбоксам
+                this.checkboxStore.saveCheckboxNodes();
             }
         }
 
@@ -122,17 +222,6 @@
         }
 
         /**
-         * Обновляет все комментарии хранилища
-         */
-        update() {
-            for (let id in this.comments) {
-                if (this.comments.hasOwnProperty(id)) {
-                    this.comments[id].update();
-                }
-            }
-        }
-
-        /**
          * Возвращает объект-комментарий
          * @param c
          * @return {Comment}
@@ -150,7 +239,7 @@
     commentNodes.forEach(c => commentStore.add(c));
 
     setInterval(() => {
-        // берем комментарии заново, могли добавиться новые
+        // каждый раз берем комментарии заново, могли добавиться новые
         let commentNodes = document.querySelectorAll('.wiki.text');
 
         commentNodes.forEach(c => {
