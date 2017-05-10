@@ -229,6 +229,53 @@
         getCommentByNode(c) {
             return this.comments[c.__comment_id];
         }
+
+        /**
+         * Очищает хранилище от текстов, которых больше нет на странице
+         */
+        rinse() {
+            // берем все текущие тексты на странице
+            let commentNodes = document.querySelectorAll('.wiki.text'),
+                toRemove = [];
+
+            // проходимся по всем текстам, которые сейчас есть в хранилище
+            for (let id in this.comments) {
+                if (this.comments.hasOwnProperty(id)) {
+                    let found = false;
+
+                    // ищем текст с таким id среди тех, что на странице
+                    commentNodes.forEach(c => {
+                        if (c.__comment_id === id) {
+                            found = true;
+                        }
+                    });
+
+                    // если не нашли, записываем в черный список
+                    if (!found) {
+                        toRemove.push(id);
+                    }
+                }
+            }
+
+            // удаляем неактуальные
+            toRemove.forEach(id => delete this.comments[id]);
+        }
+
+        /**
+         * Возвращает текущее количество элементов в хранилище
+         * @return {number}
+         */
+        getSize() {
+            let size = 0;
+
+            for (let id in this.comments) {
+                if (this.comments.hasOwnProperty(id)) {
+                    size++;
+                }
+            }
+
+            return size;
+        }
     }
 
     // получим все комментарии на странице
@@ -253,5 +300,7 @@
                 .getCommentByNode(c)
                 .update();
         });
+
+        commentStore.rinse();
     }, 100);
 })();
