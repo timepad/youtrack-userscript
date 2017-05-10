@@ -98,14 +98,14 @@
     }
 
     /**
-     * Класс для работы с комментарием
+     * Класс для работы с текстами
      */
-    class Comment {
+    class Text {
         constructor(node) {
             this.id = Unique.id();
 
             this.node = node;
-            this.node.__comment_id = this.id;
+            this.node.__text_id = this.id;
 
             this.currentHtml = node.innerHTML;
             this.preparedHtml = node.innerHTML;
@@ -113,12 +113,12 @@
             // создаем пустое хранилище чекбоксов
             this.checkboxStore = new CheckboxStore();
 
-            // сразу подготавливаем коммент
+            // сразу подготавливаем текст
             this.prepareHtml();
         }
 
         /**
-         * Заменяет в комментарии все _[ ] на строки вида YT_CHECKBOX_34f91ad6cce2_CHECKED
+         * Заменяет в тексте все _[ ] на строки вида YT_CHECKBOX_34f91ad6cce2_CHECKED
          */
         prepareHtml() {
             let html = this.preparedHtml;
@@ -152,7 +152,7 @@
         }
 
         /**
-         * Добавляет в живой комментарий чекбоксы
+         * Добавляет в живой текст чекбоксы
          */
         insertCheckboxes() {
             let html = this.preparedHtml,
@@ -184,7 +184,7 @@
         }
 
         /**
-         * Обновляет комментарий
+         * Обновляет текст
          * И объект, и живую DOM-ноду
          */
         update() {
@@ -195,39 +195,39 @@
     }
 
     /**
-     * Хранилище комментариев
+     * Хранилище текстов
      */
-    class CommentStore {
+    class TextStore {
         constructor() {
-            this.comments = {};
+            this.texts = {};
         }
 
         /**
-         * Добавляет комментарий в хранилище
-         * @param {HTMLElement} c
+         * Добавляет текст в хранилище
+         * @param {HTMLElement} t
          */
-        add(c) {
-            let comment = new Comment(c);
+        add(t) {
+            let text = new Text(t);
 
-            this.comments[comment.id] = comment;
+            this.texts[text.id] = text;
         }
 
         /**
-         * Проверяет, есть ли этот комментарий в хранилище
-         * @param c
+         * Проверяет, есть ли этот текст в хранилище
+         * @param t
          * @return {boolean}
          */
-        stored(c) {
-            return !!c.__comment_id;
+        stored(t) {
+            return !!t.__text_id;
         }
 
         /**
-         * Возвращает объект-комментарий
-         * @param c
-         * @return {Comment}
+         * Возвращает объект-текст
+         * @param t
+         * @return {Text}
          */
-        getCommentByNode(c) {
-            return this.comments[c.__comment_id];
+        getTextByNode(t) {
+            return this.texts[t.__text_id];
         }
 
         /**
@@ -235,17 +235,17 @@
          */
         rinse() {
             // берем все текущие тексты на странице
-            let commentNodes = document.querySelectorAll('.wiki.text'),
+            let textNodes = document.querySelectorAll('.wiki.text'),
                 toRemove = [];
 
             // проходимся по всем текстам, которые сейчас есть в хранилище
-            for (let id in this.comments) {
-                if (this.comments.hasOwnProperty(id)) {
+            for (let id in this.texts) {
+                if (this.texts.hasOwnProperty(id)) {
                     let found = false;
 
                     // ищем текст с таким id среди тех, что на странице
-                    commentNodes.forEach(c => {
-                        if (c.__comment_id === id) {
+                    textNodes.forEach(t => {
+                        if (t.__text_id === id) {
                             found = true;
                         }
                     });
@@ -258,7 +258,7 @@
             }
 
             // удаляем неактуальные
-            toRemove.forEach(id => delete this.comments[id]);
+            toRemove.forEach(id => delete this.texts[id]);
         }
 
         /**
@@ -268,8 +268,8 @@
         getSize() {
             let size = 0;
 
-            for (let id in this.comments) {
-                if (this.comments.hasOwnProperty(id)) {
+            for (let id in this.texts) {
+                if (this.texts.hasOwnProperty(id)) {
                     size++;
                 }
             }
@@ -278,29 +278,29 @@
         }
     }
 
-    // получим все комментарии на странице
-    let commentNodes = document.querySelectorAll('.wiki.text'),
-        commentStore = new CommentStore();
+    // получим все тексты на странице
+    let textNodes = document.querySelectorAll('.wiki.text'),
+        textStore = new TextStore();
 
-    // добавляем комментарии в хранилище
-    commentNodes.forEach(c => commentStore.add(c));
+    // добавляем тексты в хранилище
+    textNodes.forEach(t => textStore.add(t));
 
     setInterval(() => {
-        // каждый раз берем комментарии заново, могли добавиться новые
-        let commentNodes = document.querySelectorAll('.wiki.text');
+        // каждый раз берем тексты заново, могли добавиться новые
+        let textNodes = document.querySelectorAll('.wiki.text');
 
-        commentNodes.forEach(c => {
+        textNodes.forEach(t => {
             // если это какой-то новый, добавляем в наш список
-            if (!commentStore.stored(c)) {
-                commentStore.add(c);
+            if (!textStore.stored(t)) {
+                textStore.add(t);
             }
 
-            // обновляем комментарий
-            commentStore
-                .getCommentByNode(c)
+            // обновляем текст
+            textStore
+                .getTextByNode(t)
                 .update();
         });
 
-        commentStore.rinse();
+        textStore.rinse();
     }, 100);
 })();
