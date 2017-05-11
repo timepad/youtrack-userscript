@@ -394,15 +394,9 @@
     let textStore = new TextStore(),
         apiClient = new ApiClient();
 
-    // подгрузим комменты и пока выведем их на экран
-    apiClient.getComments().then(
-        response    => console.log(response),
-        error       => console.error(error)
-    );
-
-    // будем обновляться регулярно
-    setInterval(() => {
-        // каждый раз берем тексты заново, могли добавиться новые
+    // основная функция обновления текстов
+    let updateTexts = () => {
+        // берем тексты заново, могли добавиться новые
         let textNodes = document.querySelectorAll('.wiki.text');
 
         textNodes.forEach(t => {
@@ -419,5 +413,17 @@
 
         // удаляем старые
         textStore.rinse();
-    }, 100);
+    };
+
+    // вызовем один разок для инициализации
+    updateTexts();
+
+    // подгрузим комменты и пока выведем их на экран
+    apiClient.getComments().then(
+        response    => console.log(response),
+        error       => console.error(error)
+    );
+
+    // будем обновляться регулярно
+    setInterval(updateTexts, 100);
 })();
