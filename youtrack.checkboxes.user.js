@@ -334,13 +334,12 @@
         }
     }
 
-    // получим все тексты на странице
-    let textNodes = document.querySelectorAll('.wiki.text'),
-        textStore = new TextStore();
 
-    // добавляем тексты в хранилище
-    textNodes.forEach(t => textStore.add(t));
+    // тут начинается самого выполнение скрипта
+    // создадим хранилище наших комментов
+    let textStore = new TextStore();
 
+    // будем обновляться регулярно
     setInterval(() => {
         // каждый раз берем тексты заново, могли добавиться новые
         let textNodes = document.querySelectorAll('.wiki.text');
