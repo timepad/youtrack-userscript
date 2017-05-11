@@ -334,10 +334,71 @@
         }
     }
 
+    /**
+     * Класс для работы с YouTrack API
+     */
+    class ApiClient {
+        constructor() {
+            let url = window.location.href,
+                match = url.match(/TP-\d+/);
+
+            // если смогли понять, что за тикет
+            if (match && match[0]) {
+                let issue = match[0];
+
+                this.baseUrl = `https://timepad.myjetbrains.com/youtrack/rest/issue/${issue}`;
+            } else {
+                console.error('Issue determining error');
+            }
+        }
+
+        /**
+         * С помощью API подгружает комменты
+         * Нужно для того, чтобы получить их представление в youtrack-маркдауне
+         * @return {Promise}
+         */
+        getComments() {
+            // сразу возвращаем промис
+            return new Promise((resolve, reject) => {
+                let xhr = new XMLHttpRequest(),
+                    comments = {};
+
+                xhr.open('GET', `${this.baseUrl}/comment`, true);
+                xhr.send();
+
+                xhr.onload = () => {
+                    // какая-то ошибка, ничего не поделать
+                    if (xhr.status !== 200) {
+                        let error = new Error(xhr.responseText);
+
+                        error.code = xhr.status;
+
+                        reject(error);
+                    }
+
+                    // если все ок, находим элементы <comment>
+                    let commentNodes = xhr.responseXML.querySelectorAll('comment');
+
+                    // заполним словарь комментов id:text
+                    commentNodes.forEach(c => comments[c.id] = c.getAttribute('text'));
+
+                    // резолвим промис полученными комментами
+                    resolve(comments);
+                };
+            });
+        }
+    }
 
     // тут начинается самого выполнение скрипта
     // создадим хранилище наших комментов
-    let textStore = new TextStore();
+    let textStore = new TextStore(),
+        apiClient = new ApiClient();
+
+    // подгрузим комменты и пока выведем их на экран
+    apiClient.getComments().then(
+        response    => console.log(response),
+        error       => console.error(error)
+    );
 
     // будем обновляться регулярно
     setInterval(() => {
