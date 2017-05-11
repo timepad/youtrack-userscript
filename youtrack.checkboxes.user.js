@@ -110,6 +110,9 @@
             this.currentHtml = node.innerHTML;
             this.preparedHtml = node.innerHTML;
 
+            // определяем, это описание, превью или обычный комментарий
+            this.determineTextType();
+
             // создаем пустое хранилище чекбоксов
             this.checkboxStore = new CheckboxStore();
 
@@ -191,6 +194,43 @@
             this.currentHtml = this.node.innerHTML;
             this.prepareHtml();
             this.insertCheckboxes();
+        }
+
+        /**
+         * Находит среди родителей элемент, у которого есть класс cls
+         * @param cls
+         * @return {HTMLElement | null} - найденный элемент или null
+         */
+        findAncestor(cls) {
+            let element = this.node;
+
+            while ((element = element.parentElement) && !element.classList.contains(cls));
+
+            return element;
+        }
+
+        /**
+         * Определяет, что из себя представляет этот текст
+         * Описание тикета, превью нового комментария или существующий комментарий
+         */
+        determineTextType() {
+            // если у родительского элемента есть класс description
+            if (this.node.parentElement.classList.contains('description')) {
+                this.description = true;
+            } else if (this.node.parentElement.classList.contains('comment-preview')) {
+                this.preview = true;
+            } else {
+                let commentRow = this.findAncestor('comment-row');
+
+                if (commentRow) {
+                    this.comment = true;
+
+                    // тот id, под которым комментарий хранится в ютреке
+                    this.commentId = commentRow.getAttribute('_id');
+                } else {
+                    console.error("Couldn't detrmine text type");
+                }
+            }
         }
     }
 
@@ -301,6 +341,7 @@
                 .update();
         });
 
+        // удаляем старые
         textStore.rinse();
     }, 100);
 })();
