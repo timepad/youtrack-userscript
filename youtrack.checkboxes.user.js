@@ -32,14 +32,6 @@
         }
 
         /**
-         * Проверяет, добавили ли мы уже ноду
-         * @return {boolean}
-         */
-        hasNode() {
-            return !!this.node;
-        }
-
-        /**
          * Запоминает ноду в объекте
          * @param node
          */
@@ -61,16 +53,17 @@
         checkboxChanged() {
             console.log('checkbox changed');
 
-            // let checked = this.node.checked,
-            //     checkedString = `YT_CHECKBOX_${this.id}_CHECKED`,
-            //     uncheckedString = `YT_CHECKBOX_${this.id}_UNCHECKED`;
-            //
-            // // обновляем нашу подготовленную строку
-            // this.text.preparedHtml = checked ?
-            //     this.text.preparedHtml.replace(uncheckedString, checkedString) :
-            //     this.text.preparedHtml.replace(checkedString, uncheckedString);
-            //
-            // console.log(this.text.preparedHtml);
+            let checked = this.node.checked,
+                checkedString = `YT_CHECKBOX_${this.id}_CHECKED`,
+                uncheckedString = `YT_CHECKBOX_${this.id}_UNCHECKED`;
+
+            // обновляем нашу подготовленную строку
+            this.text.preparedHtml = checked ?
+                this.text.preparedHtml.replace(uncheckedString, checkedString) :
+                this.text.preparedHtml.replace(checkedString, uncheckedString);
+
+            // соответствующе обновляем plain-текст
+            this.text.updatePlainText();
         }
     }
 
@@ -90,23 +83,19 @@
          * Изначально объекты-чекбоксы создаются пустыми, они содержат только id
          * Этот метод добавляет им ноду и вешает колбек на ее изменение
          */
-        saveCheckboxNodes() {
+        updateCheckboxNodes() {
             let checkboxes = this.checkboxes;
 
             for (let id in checkboxes) {
                 if (checkboxes.hasOwnProperty(id)) {
-                    let checkbox = checkboxes[id];
+                    let checkbox = checkboxes[id],
+                        node = document.getElementById(id);
 
-                    // если еще не запомнили ноду
-                    if (!checkbox.hasNode()) {
-                        let node = document.getElementById(id);
+                    // запоминаем
+                    checkbox.setNode(node);
 
-                        // запоминаем
-                        checkbox.setNode(node);
-
-                        // вешаем коллбек
-                        checkbox.setCallback();
-                    }
+                    // вешаем коллбек
+                    checkbox.setCallback();
                 }
             }
         }
@@ -223,8 +212,9 @@
                 // заменяем html
                 this.node.innerHTML = this.checkboxHtml;
 
-                // добавляем колбеки к новым чекбоксам
-                this.checkboxStore.saveCheckboxNodes();
+                // html поменялся, все ноды неактуальные
+                // обновляем и заново вешаем колбеки
+                this.checkboxStore.updateCheckboxNodes();
             }
         }
 
