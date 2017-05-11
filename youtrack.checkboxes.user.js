@@ -23,7 +23,11 @@
      * Класс для работы с чекбоксом
      */
     class Checkbox {
-        constructor() {
+        /**
+         * @param {Text} owner
+         */
+        constructor(owner) {
+            this.text = owner;
             this.id = Unique.id();
         }
 
@@ -48,7 +52,7 @@
          * Устанавливает коллбек на изменение
          */
         setCallback() {
-            this.node.addEventListener('change', this.checkboxChanged);
+            this.node.addEventListener('change', () => this.checkboxChanged());
         }
 
         /**
@@ -56,6 +60,17 @@
          */
         checkboxChanged() {
             console.log('checkbox changed');
+
+            // let checked = this.node.checked,
+            //     checkedString = `YT_CHECKBOX_${this.id}_CHECKED`,
+            //     uncheckedString = `YT_CHECKBOX_${this.id}_UNCHECKED`;
+            //
+            // // обновляем нашу подготовленную строку
+            // this.text.preparedHtml = checked ?
+            //     this.text.preparedHtml.replace(uncheckedString, checkedString) :
+            //     this.text.preparedHtml.replace(checkedString, uncheckedString);
+            //
+            // console.log(this.text.preparedHtml);
         }
     }
 
@@ -107,8 +122,9 @@
             this.node = node;
             this.node.__text_id = this.id;
 
-            this.currentHtml = node.innerHTML;
+            this.plainHtml = node.innerHTML;
             this.preparedHtml = node.innerHTML;
+            this.checkboxHtml = node.innerHTML;
 
             // определяем, это описание, превью или обычный комментарий
             this.determineTextType();
@@ -129,7 +145,7 @@
             // заменяем unchecked галочки
             while (html.match(/_\[ ]/)) {
                 // нашли еще не распарсенный чекбокс, создаем новый
-                let checkbox = new Checkbox();
+                let checkbox = new Checkbox(this);
 
                 // добавляем в хранилище
                 this.checkboxStore.add(checkbox);
@@ -142,7 +158,7 @@
             // xх - латинский и кириллический
             while (html.match(/_\[[xх]]/)) {
                 // нашли еще не распарсенный чекбокс, создаем новый
-                let checkbox = new Checkbox();
+                let checkbox = new Checkbox(this);
 
                 // добавляем в хранилище
                 this.checkboxStore.add(checkbox);
@@ -155,9 +171,9 @@
         }
 
         /**
-         * Добавляет в живой текст чекбоксы
+         * Заменяет в тексте конструкции вида YT_CHECKBOX_4d52adc499f3_CHECKED на чекбоксы
          */
-        insertCheckboxes() {
+        updateCheckboxText() {
             let html = this.preparedHtml,
                 regexp = /YT_CHECKBOX_([0-9a-f]{12})_(UN)?CHECKED/,
                 match;
@@ -173,13 +189,39 @@
                 }
             }
 
-            // запоминаем
-            this.currentHtml = html;
+            // сохраняем
+            this.checkboxHtml = html;
+        }
 
+        /**
+         * Заменяет в тексте конструкции вида YT_CHECKBOX_4d52adc499f3_CHECKED на _[x]
+         */
+        updatePlainText() {
+            let html = this.preparedHtml,
+                regexp = /YT_CHECKBOX_[0-9a-f]{12}_(UN)?CHECKED/,
+                match;
+
+            // заменяем на квадратные скобки
+            while (match = html.match(regexp)) {
+                if (match[1]) { // если есть приставка UN
+                    html = html.replace(regexp, '_[ ]');
+                } else {
+                    html = html.replace(regexp, '_[x]');
+                }
+            }
+
+            // сохраняем
+            this.plainHtml = html;
+        }
+
+        /**
+         * Обновляет живую дом-ноду
+         */
+        updateVisibleText() {
             // если что-то изменилось
-            if (this.node.innerHTML !== html) {
+            if (this.node.innerHTML !== this.checkboxHtml) {
                 // заменяем html
-                this.node.innerHTML = html;
+                this.node.innerHTML = this.checkboxHtml;
 
                 // добавляем колбеки к новым чекбоксам
                 this.checkboxStore.saveCheckboxNodes();
@@ -191,9 +233,9 @@
          * И объект, и живую DOM-ноду
          */
         update() {
-            this.currentHtml = this.node.innerHTML;
             this.prepareHtml();
-            this.insertCheckboxes();
+            this.updateCheckboxText();
+            this.updateVisibleText();
         }
 
         /**
@@ -299,22 +341,6 @@
 
             // удаляем неактуальные
             toRemove.forEach(id => delete this.texts[id]);
-        }
-
-        /**
-         * Возвращает текущее количество элементов в хранилище
-         * @return {number}
-         */
-        getSize() {
-            let size = 0;
-
-            for (let id in this.texts) {
-                if (this.texts.hasOwnProperty(id)) {
-                    size++;
-                }
-            }
-
-            return size;
         }
     }
 
