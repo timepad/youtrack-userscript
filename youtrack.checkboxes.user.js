@@ -71,6 +71,9 @@
             if (this.text.comment) {
                 // обновляем комментарий на сервере
                 apiClient.updateComment(this.text.commentId, this.text.plainText);
+            } else if (this.text.description) {
+                // обновляем описание на сервере
+                apiClient.updateDescription(this.text.plainText);
             }
         }
     }
@@ -483,8 +486,8 @@
             return new Promise((resolve, reject) => {
                 let xhr = new XMLHttpRequest(),
                     issue = {
-                        summary: null,
-                        description: null,
+                        summary: '',
+                        description: '',
                         comments: []
                     };
 
@@ -516,6 +519,19 @@
                     resolve(issue);
                 };
             });
+        }
+
+        updateDescription(text) {
+            let xhr = new XMLHttpRequest();
+
+            xhr.open('POST', `${this.baseUrl}?summary=${encodeURIComponent(this.issue.summary)}&description=${encodeURIComponent(text)}`, true);
+            xhr.send();
+
+            xhr.onload = () => {
+                if (xhr.status !== 200) {
+                    console.error(xhr.responseText);
+                }
+            };
         }
     }
 
