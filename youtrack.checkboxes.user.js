@@ -68,8 +68,10 @@
             // соответствующе обновляем plain-текст
             this.text.updatePlainText();
 
-            // обновляем комментарий на сервере
-            apiClient.updateComment(this.text.commentId, this.text.plainText);
+            if (this.text.comment) {
+                // обновляем комментарий на сервере
+                apiClient.updateComment(this.text.commentId, this.text.plainText);
+            }
         }
     }
 
@@ -284,7 +286,7 @@
                     // тот id, под которым комментарий хранится в ютреке
                     this.commentId = commentRow.getAttribute('_id');
                 } else {
-                    console.error("Couldn't detrmine text type");
+                    console.error("Couldn't determine text type");
                 }
             }
         }
@@ -311,7 +313,7 @@
         }
 
         addFromCommentObject(c) {
-            let node = this.getCorrespondingNode(c);
+            let node = this.getCorrespondingCommentNode(c);
 
             if (node) {
                 let text = this.add(node);
@@ -323,14 +325,30 @@
             }
         }
 
+        addFromDescription(description) {
+            let node = this.getDescriptionNode();
+
+            if (node) {
+                let text = this.add(node);
+
+                text.init(description);
+            } else {
+                console.error(`Couln't find corresponding node for description`);
+            }
+        }
+
         /**
          * По объекту, представляющему комментарий, пришедщий с сервера
          * находит соответствующую dom-ноду
          * @param c
          * @return {HTMLElement}
          */
-        getCorrespondingNode(c) {
-            return document.querySelectorAll(`[_id="${c.id}"] .wiki.text`)[0];
+        getCorrespondingCommentNode(c) {
+            return document.querySelector(`[_id="${c.id}"] .wiki.text`);
+        }
+
+        getDescriptionNode() {
+            return document.querySelector('.description .wiki.text');
         }
 
         /**
@@ -456,6 +474,49 @@
                 }
             };
         }
+
+        /**
+         * Получает с сервера всю информацию о тикете
+         * @return {Promise}
+         */
+        getIssue() {
+            return new Promise((resolve, reject) => {
+                let xhr = new XMLHttpRequest(),
+                    issue = {
+                        summary: null,
+                        description: null,
+                        comments: []
+                    };
+
+                xhr.open('GET', this.baseUrl, true);
+                xhr.send();
+
+                xhr.onload = () => {
+                    // какая-то ошибка, ничего не поделать
+                    if (xhr.status !== 200) {
+                        let error = new Error(xhr.responseText);
+                        error.code = xhr.status;
+
+                        reject(error);
+                    }
+
+                    // заполним массив с комментами
+                    xhr.responseXML
+                        .querySelectorAll('comment')
+                        .forEach(c => issue.comments.push({id: c.id, text: c.getAttribute('text')}));
+
+                    // теперь находим summary и description
+                    issue.summary = xhr.responseXML.querySelector('field[name="summary"] value').innerHTML;
+                    issue.description = xhr.responseXML.querySelector('field[name="description"] value').innerHTML;
+
+                    // запоминаем, понадобится при сохранении описания
+                    this.issue = issue;
+
+                    // резолвим промис полученным тикетом
+                    resolve(issue);
+                };
+            });
+        }
     }
 
     // тут начинается выполнение самого скрипта
@@ -474,10 +535,10 @@
                 textStore.add(t);
             }
 
-            // TODO пока что только для комментов
+            // TODO пока что только для комментов и описания
             let text = textStore.getTextByNode(t);
 
-            if (text.comment) {
+            if (text.comment || text.description) {
                 text.update();
             }
 
@@ -492,18 +553,17 @@
     };
 
     // подгрузим комменты
-    apiClient.getComments().then(
-        comments    => {
-            comments.forEach(c => textStore.addFromCommentObject(c));
+    apiClient.getIssue().then(
+        issue => {
+            // добавляем комменты
+            issue.comments.forEach(c => textStore.addFromCommentObject(c));
 
-            updateTexts();
+            // добавляем описание
+            textStore.addFromDescription(issue.description);
+
+            // будем обновляться регулярно
+            setInterval(updateTexts, 100);
         },
-        error       => console.error(error)
+        error => console.error(error)
     );
-
-    // вызовем один разок для инициализации
-    //updateTexts();
-
-    // будем обновляться регулярно
-    setInterval(updateTexts, 100);
 })();
