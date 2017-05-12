@@ -51,19 +51,24 @@
          * Метод, который вызывается при изменении состояния чекбокса
          */
         checkboxChanged() {
-            console.log('checkbox changed');
-
             let checked = this.node.checked,
                 checkedString = `YT_CHECKBOX_${this.id}_CHECKED`,
                 uncheckedString = `YT_CHECKBOX_${this.id}_UNCHECKED`;
 
-            // обновляем нашу подготовленную строку
+            // обновляем наш подготовленный html
             this.text.preparedHtml = checked ?
                 this.text.preparedHtml.replace(uncheckedString, checkedString) :
                 this.text.preparedHtml.replace(checkedString, uncheckedString);
 
+            // обновляем наш подготовленный текст
+            this.text.preparedText = checked ?
+                this.text.preparedText.replace(uncheckedString, checkedString) :
+                this.text.preparedText.replace(checkedString, uncheckedString);
+
             // соответствующе обновляем plain-текст
             this.text.updatePlainText();
+
+            console.log(this.text.plainText);
         }
     }
 
@@ -111,52 +116,70 @@
             this.node = node;
             this.node.__text_id = this.id;
 
-            this.plainHtml = node.innerHTML;
-            this.preparedHtml = node.innerHTML;
-            this.checkboxHtml = node.innerHTML;
-
             // определяем, это описание, превью или обычный комментарий
             this.determineTextType();
 
             // создаем пустое хранилище чекбоксов
             this.checkboxStore = new CheckboxStore();
+        }
 
-            // сразу подготавливаем текст
-            this.prepareHtml();
+        /**
+         *
+         * @param {string} text
+         */
+        init(text) {
+            this.plainText = text;
+            this.preparedText = text;
+
+            this.preparedHtml = this.node.innerHTML;
+            this.checkboxHtml = this.node.innerHTML;
+
+            // подготавливаем текст
+            this.prepareTextAndHtml();
         }
 
         /**
          * Заменяет в тексте все _[ ] на строки вида YT_CHECKBOX_34f91ad6cce2_CHECKED
+         * Работает в предположении, что количество таких строк в комменте с сервера и в innerHTML коммента в DOMе совпадает
          */
-        prepareHtml() {
-            let html = this.preparedHtml;
+        prepareTextAndHtml() {
+            let html = this.preparedHtml,
+                text = this.preparedText;
 
             // заменяем unchecked галочки
             while (html.match(/_\[ ]/)) {
-                // нашли еще не распарсенный чекбокс, создаем новый
-                let checkbox = new Checkbox(this);
+                // в html нашелся нераспарсенный чекбокс, скорее всего и в text он тоже есть
+                // создаем новый
+                let checkbox = new Checkbox(this),
+                    checkboxString = `YT_CHECKBOX_${checkbox.id}_UNCHECKED`;
 
                 // добавляем в хранилище
                 this.checkboxStore.add(checkbox);
 
-                // заменяем в html
-                html = html.replace(/_\[ ]/, `YT_CHECKBOX_${checkbox.id}_UNCHECKED`);
+                // заменяем в html и тексте
+                html = html.replace(/_\[ ]/, checkboxString);
+                text = text.replace(/_\[ ]/, checkboxString);
             }
 
             // заменяем checked галочки
             // xх - латинский и кириллический
             while (html.match(/_\[[xх]]/)) {
-                // нашли еще не распарсенный чекбокс, создаем новый
-                let checkbox = new Checkbox(this);
+                // в html нашелся нераспарсенный чекбокс, скорее всего и в text он тоже есть
+                // создаем новый
+                let checkbox = new Checkbox(this),
+                    checkboxString = `YT_CHECKBOX_${checkbox.id}_CHECKED`;
 
                 // добавляем в хранилище
                 this.checkboxStore.add(checkbox);
 
-                // заменяем в html
-                html = html.replace(/_\[[xх]]/, `YT_CHECKBOX_${checkbox.id}_CHECKED`);
+                // заменяем в html и тексте
+                html = html.replace(/_\[[xх]]/, checkboxString);
+                text = text.replace(/_\[[xх]]/, checkboxString);
             }
 
+            // сохраняем все наши изменения
             this.preparedHtml = html;
+            this.preparedText = text;
         }
 
         /**
@@ -186,21 +209,21 @@
          * Заменяет в тексте конструкции вида YT_CHECKBOX_4d52adc499f3_CHECKED на _[x]
          */
         updatePlainText() {
-            let html = this.preparedHtml,
+            let text = this.preparedText,
                 regexp = /YT_CHECKBOX_[0-9a-f]{12}_(UN)?CHECKED/,
                 match;
 
             // заменяем на квадратные скобки
-            while (match = html.match(regexp)) {
+            while (match = text.match(regexp)) {
                 if (match[1]) { // если есть приставка UN
-                    html = html.replace(regexp, '_[ ]');
+                    text = text.replace(regexp, '_[ ]');
                 } else {
-                    html = html.replace(regexp, '_[x]');
+                    text = text.replace(regexp, '_[x]');
                 }
             }
 
             // сохраняем
-            this.plainHtml = html;
+            this.plainText = text;
         }
 
         /**
@@ -223,7 +246,7 @@
          * И объект, и живую DOM-ноду
          */
         update() {
-            this.prepareHtml();
+            this.prepareTextAndHtml();
             this.updateCheckboxText();
             this.updateVisibleText();
         }
@@ -282,6 +305,31 @@
             let text = new Text(t);
 
             this.texts[text.id] = text;
+
+            return text;
+        }
+
+        addFromCommentObject(c) {
+            let node = this.getCorrespondingNode(c);
+
+            if (node) {
+                let text = this.add(node);
+
+                // запоминаем настоящий текст с сервера
+                text.init(c.text);
+            } else {
+                console.error(`Couln't find corresponding node for comment ${c.id}`);
+            }
+        }
+
+        /**
+         * По объекту, представляющему комментарий, пришедщий с сервера
+         * находит соответствующую dom-ноду
+         * @param c
+         * @return {HTMLElement}
+         */
+        getCorrespondingNode(c) {
+            return document.querySelectorAll(`[_id="${c.id}"] .wiki.text`)[0];
         }
 
         /**
@@ -361,7 +409,7 @@
             // сразу возвращаем промис
             return new Promise((resolve, reject) => {
                 let xhr = new XMLHttpRequest(),
-                    comments = {};
+                    comments = [];
 
                 xhr.open('GET', `${this.baseUrl}/comment`, true);
                 xhr.send();
@@ -379,8 +427,8 @@
                     // если все ок, находим элементы <comment>
                     let commentNodes = xhr.responseXML.querySelectorAll('comment');
 
-                    // заполним словарь комментов id:text
-                    commentNodes.forEach(c => comments[c.id] = c.getAttribute('text'));
+                    // заполним массив с комментами
+                    commentNodes.forEach(c => comments.push({id: c.id, text: c.getAttribute('text')}));
 
                     // резолвим промис полученными комментами
                     resolve(comments);
@@ -389,7 +437,7 @@
         }
     }
 
-    // тут начинается самого выполнение скрипта
+    // тут начинается выполнение самого скрипта
     // создадим хранилище наших комментов
     let textStore = new TextStore(),
         apiClient = new ApiClient();
@@ -405,24 +453,35 @@
                 textStore.add(t);
             }
 
+            // TODO пока что только для комментов
+            let text = textStore.getTextByNode(t);
+
+            if (text.comment) {
+                text.update();
+            }
+
             // обновляем текст
-            textStore
-                .getTextByNode(t)
-                .update();
+            // textStore
+            //     .getTextByNode(t)
+            //     .update();
         });
 
         // удаляем старые
         textStore.rinse();
     };
 
-    // вызовем один разок для инициализации
-    updateTexts();
-
-    // подгрузим комменты и пока выведем их на экран
+    // подгрузим комменты
     apiClient.getComments().then(
-        response    => console.log(response),
+        comments    => {
+            comments.forEach(c => textStore.addFromCommentObject(c));
+
+            updateTexts();
+        },
         error       => console.error(error)
     );
+
+    // вызовем один разок для инициализации
+    //updateTexts();
 
     // будем обновляться регулярно
     setInterval(updateTexts, 100);
