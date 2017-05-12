@@ -258,19 +258,6 @@
         }
 
         /**
-         * Находит среди родителей элемент, у которого есть класс cls
-         * @param cls
-         * @return {HTMLElement | null} - найденный элемент или null
-         */
-        findAncestor(cls) {
-            let element = this.node;
-
-            while ((element = element.parentElement) && !element.classList.contains(cls));
-
-            return element;
-        }
-
-        /**
          * Определяет, что из себя представляет этот текст
          * Описание тикета, превью нового комментария или существующий комментарий
          */
@@ -279,9 +266,14 @@
             if (this.node.parentElement.classList.contains('description')) {
                 this.description = true;
             } else if (this.node.parentElement.classList.contains('comment-preview')) {
-                this.preview = true;
+                // превью коммента (если его сейчас редактируют или создают новый)
+                this.commentPreview = true;
+            } else if (Helper.findAncestor(this.node, 'issue-preview__content')) {
+                // превью описания тикета (если его сейчас редактируют)
+                this.descriptionPreview = true;
             } else {
-                let commentRow = this.findAncestor('comment-row');
+                // остается только коммент
+                let commentRow = Helper.findAncestor(this.node, 'comment-row');
 
                 if (commentRow) {
                     this.comment = true;
@@ -315,8 +307,12 @@
             return text;
         }
 
+        /**
+         * Добавляет текст в хранилище, получая его из объекта коммента, полученного с сервера
+         * @param c
+         */
         addFromCommentObject(c) {
-            let node = this.getCorrespondingCommentNode(c);
+            let node = Helper.getCommentNode(c);
 
             if (node) {
                 let text = this.add(node);
@@ -328,8 +324,12 @@
             }
         }
 
+        /**
+         * Добавляет текст в хранилище, с учетом того, что это описание тикета
+         * @param description
+         */
         addFromDescription(description) {
-            let node = this.getDescriptionNode();
+            let node = Helper.getDescriptionNode();
 
             if (node) {
                 let text = this.add(node);
@@ -340,18 +340,8 @@
             }
         }
 
-        /**
-         * По объекту, представляющему комментарий, пришедщий с сервера
-         * находит соответствующую dom-ноду
-         * @param c
-         * @return {HTMLElement}
-         */
-        getCorrespondingCommentNode(c) {
-            return document.querySelector(`[_id="${c.id}"] .wiki.text`);
-        }
+        addFromCommentPreview() {
 
-        getDescriptionNode() {
-            return document.querySelector('.description .wiki.text');
         }
 
         /**
@@ -401,6 +391,77 @@
 
             // удаляем неактуальные
             toRemove.forEach(id => delete this.texts[id]);
+        }
+    }
+
+    /**
+     * Просто набор методов, которые никуда особо не подходят
+     */
+    class Helper {
+        /**
+         * По объекту, представляющему комментарий, пришедщий с сервера
+         * находит соответствующую DOM-ноду
+         * @param c
+         * @return {HTMLElement}
+         */
+        static getCommentNode(c) {
+            return document.querySelector(`[_id="${c.id}"] .wiki.text`);
+        }
+
+        /**
+         * Находит на странице DOM-ноду описания тикета
+         * @return {HTMLElement}
+         */
+        static getDescriptionNode() {
+            return document.querySelector('.description .wiki.text');
+        }
+
+        /**
+         * Возвращает textarea, где мы вводим текст, когда редактируем коммент
+         * @param node
+         * @return {HTMLElement}
+         */
+        static getCommentPreviewTextarea(node) {
+            let commentPreview = this.findAncestor(node, 'comment-preview'),
+                commentTextareaContainer = this.findSibling(commentPreview, 'comment-textarea-container');
+
+            return commentTextareaContainer.querySelector('textarea');
+        }
+
+        /**
+         * Возвращает textarea, где мы вводим текст, когда редактируем описание тикета
+         *
+         * @param node
+         * @return {HTMLElement}
+         */
+        static getDescriptionPreviewTextarea(node) {
+            let editContentBlock = this.findAncestor(node, 'edit-content__block');
+
+            return editContentBlock.querySelector('.edit-issue-form__i__description');
+        }
+
+        /**
+         * Находит среди родителей элемент, у которого есть класс cls
+         * @param element
+         * @param cls
+         * @return {HTMLElement | null} - найденный элемент или null
+         */
+        static findAncestor(element, cls) {
+            while ((element = element.parentElement) && !element.classList.contains(cls));
+
+            return element;
+        }
+
+        /**
+         * Находит среди сиблингов элемент, у которого есть класс cls
+         * @param element
+         * @param cls
+         * @return {HTMLElement | null} - найденный элемент или null
+         */
+        static findSibling(element, cls) {
+            element = element.parentElement;
+
+            return element.querySelector(`.${cls}`);
         }
     }
 
@@ -521,6 +582,10 @@
             });
         }
 
+        /**
+         * Обновляет описание тикета на сервере
+         * @param text
+         */
         updateDescription(text) {
             let xhr = new XMLHttpRequest();
 
@@ -548,15 +613,29 @@
         textNodes.forEach(t => {
             // если это какой-то новый, добавляем в наш список
             if (!textStore.stored(t)) {
-                textStore.add(t);
+                let text = textStore.add(t);
+
+                // есть три варианта:
+                // 1. это либо превью комментария (нового или редактируемого)
+                // 2. это превью изменения описания тикета
+                // 3. это существующий коммент, который мы только что добавили или редактировали
+
+                if (text.commentPreview) {
+                    let textarea = Helper.getCommentPreviewTextarea(t);
+
+                    text.init(textarea.value);
+                } else if (text.descriptionPreview) {
+                    let textarea = Helper.getDescriptionPreviewTextarea(t);
+
+                    text.init(textarea.value);
+                }
             }
 
             // TODO пока что только для комментов и описания
             let text = textStore.getTextByNode(t);
 
-            if (text.comment || text.description) {
-                text.update();
-            }
+            text.update();
+
 
             // обновляем текст
             // textStore
