@@ -68,7 +68,8 @@
             // соответствующе обновляем plain-текст
             this.text.updatePlainText();
 
-            console.log(this.text.plainText);
+            // обновляем комментарий на сервере
+            apiClient.updateComment(this.text.commentId, this.text.plainText);
         }
     }
 
@@ -434,6 +435,26 @@
                     resolve(comments);
                 };
             });
+        }
+
+        /**
+         * Обновляет комментарий на сервере
+         * @param id
+         * @param text
+         */
+        updateComment(id, text) {
+            let xhr = new XMLHttpRequest(),
+                body = JSON.stringify({text});
+
+            xhr.open('PUT', `${this.baseUrl}/comment/${id}`, true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.send(body);
+
+            xhr.onload = () => {
+                if (xhr.status !== 200) {
+                    console.error(xhr.responseText);
+                }
+            };
         }
     }
 
