@@ -74,6 +74,16 @@
             } else if (this.text.description) {
                 // обновляем описание на сервере
                 apiClient.updateDescription(this.text.plainText);
+            } else if (this.text.commentPreview) {
+                // обновляем текст в textarea
+                let textarea = Helper.getCommentPreviewTextarea(this.text.node);
+
+                textarea.value = this.text.plainText;
+            } else if (this.text.descriptionPreview) {
+                // обновляем текст в textarea
+                let textarea = Helper.getDescriptionPreviewTextarea(this.text.node);
+                
+                textarea.value = this.text.plainText;
             }
         }
     }
