@@ -130,7 +130,7 @@
         }
 
         /**
-         *
+         * Инциализирует простым текстом без всякого HTML и наших приблуд
          * @param {string} text
          */
         init(text) {
@@ -252,6 +252,11 @@
          * И объект, и живую DOM-ноду
          */
         update() {
+            // возможно текст добавлен, но еще не инициализирован
+            if (!this.preparedHtml || !this.preparedText) {
+                return;
+            }
+
             this.prepareTextAndHtml();
             this.updateCheckboxText();
             this.updateVisibleText();
@@ -338,10 +343,6 @@
             } else {
                 console.error(`Couln't find corresponding node for description`);
             }
-        }
-
-        addFromCommentPreview() {
-
         }
 
         /**
@@ -628,19 +629,28 @@
                     let textarea = Helper.getDescriptionPreviewTextarea(t);
 
                     text.init(textarea.value);
+                } else if (text.comment) {
+                    // появился новый коммент, нужно делать запрос к API
+                    apiClient.getComments().then(
+                        comments => {
+                            let comment = comments.filter(c => c.id === text.commentId)[0];
+
+                            // нашелся коммент с таким id
+                            if (comment) {
+                                text.init(comment.text);
+                            } else {
+                                console.error(`Couldn't find comment "${comment.id}"`);
+                            }
+                        },
+                        error => console.error(error)
+                    );
                 }
             }
 
-            // TODO пока что только для комментов и описания
-            let text = textStore.getTextByNode(t);
-
-            text.update();
-
-
             // обновляем текст
-            // textStore
-            //     .getTextByNode(t)
-            //     .update();
+            textStore
+                .getTextByNode(t)
+                .update();
         });
 
         // удаляем старые
