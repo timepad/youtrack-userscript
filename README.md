@@ -4,9 +4,9 @@
 
 ## Установка
 
-1. Качаем [расширение](https://github.com/timepad/youtrack-userscript/raw/master/youtrack.checkboxes.user.js) (правая кнопка -> Save Link As...). Оно должно сохраниться с расширением `.js`.
-2. В хроме набираем `chrome://extensions`.
-3. Перетаскиваем скаченное расширение `youtrack.checkboxes.user.js` на открывшуюся страницу `chrome://extensions`.
+1. Если у вас еще не установлен `Tampermonkey`, [устанавливаем](https://chrome.google.com/webstore/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo).
+1. Кликаем на [ссылку](https://github.com/timepad/youtrack-userscript/raw/master/youtrack.checkboxes.user.js), откроется страница Tampermonkey.
+1. Жмем `Install`.
 
 ## Как пользоваться
 
@@ -14,6 +14,3 @@
 
 * `_[ ]` - для неотмеченной галочки
 * `_[x]` - для отмеченной (x работает как кириллический, так и латинский)
-
-## После перезагрузки компьютера
-Если вы перезагрузили компьютер, хром в целях безопасности отключит расширение, т.к. оно было добавлено не из их магазина. На странице `chrome://extensions` нужно удалить наше расширение (справа от него иконка мусорного ведра) и заново перетащить скаченное расширение.
