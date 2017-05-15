@@ -300,6 +300,14 @@
                 }
             }
         }
+
+        /**
+         * Опеределяет, удален ли этот комментарий
+         * @return {boolean}
+         */
+        isDeleted() {
+            return this.node.parentElement.classList.contains('comment_deleted');
+        }
     }
 
     /**
@@ -649,8 +657,13 @@
                             // нашелся коммент с таким id
                             if (comment) {
                                 text.init(comment.text);
-                            } else {
-                                console.error(`Couldn't find comment "${comment.id}"`);
+                            } else if (!text.isDeleted()) {
+                                // если не нашелся, возможно он был удален
+                                // тогда нода есть, но API его не вернет
+                                // но в нем галочек все равно нет, поэтому ничего не делаем
+
+                                // а если просто по каким-то причинам не нашелся, то выведем ошибку
+                                console.error(`Couln't find comment "${text.commentId}"`);
                             }
                         },
                         error => console.error(error)
