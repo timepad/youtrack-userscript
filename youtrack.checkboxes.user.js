@@ -616,10 +616,11 @@
             if (!textStore.stored(t)) {
                 let text = textStore.add(t);
 
-                // есть три варианта:
-                // 1. это либо превью комментария (нового или редактируемого)
+                // есть 4 варианта:
+                // 1. это превью комментария (нового или редактируемого)
                 // 2. это превью изменения описания тикета
-                // 3. это существующий коммент, который мы только что добавили или редактировали
+                // 3. это существующий коммент, который мы только что добавили или отредактировали
+                // 4. это описание тикета, которое мы только что отредактировали
 
                 if (text.commentPreview) {
                     let textarea = Helper.getCommentPreviewTextarea(t);
@@ -642,6 +643,12 @@
                                 console.error(`Couldn't find comment "${comment.id}"`);
                             }
                         },
+                        error => console.error(error)
+                    );
+                } else if (text.description) {
+                    // мы отредактировали описание, придется загрузить его заново
+                    apiClient.getIssue().then(
+                        issue => text.init(issue.description),
                         error => console.error(error)
                     );
                 }
