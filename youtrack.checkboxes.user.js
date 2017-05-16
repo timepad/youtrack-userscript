@@ -606,10 +606,14 @@
          * @param text
          */
         updateDescription(text) {
-            let xhr = new XMLHttpRequest();
+            let xhr = new XMLHttpRequest(),
+                body = new FormData();
 
-            xhr.open('POST', `${this.baseUrl}?summary=${encodeURIComponent(this.issue.summary)}&description=${encodeURIComponent(text)}`, true);
-            xhr.send();
+            body.append('summary', this.issue.summary);
+            body.append('description', text);
+
+            xhr.open('POST', this.baseUrl, true);
+            xhr.send(body);
 
             xhr.onload = () => {
                 if (xhr.status !== 200) {
