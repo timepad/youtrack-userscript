@@ -1,7 +1,12 @@
 // ==UserScript==
 // @name           YouTrack Checkboxes
 // @description    Adds checkboxes functionality to YouTrack issues
+// @version        1.0.0
+// @namespace      https://github.com/timepad/youtrack-userscript
+// @downloadURL    https://github.com/timepad/youtrack-userscript/raw/master/youtrack.checkboxes.user.js
+// @updateURL      https://github.com/timepad/youtrack-userscript/raw/master/youtrack.checkboxes.user.js
 // @include        https://timepad.myjetbrains.com/youtrack/issue/TP-*
+// @grant          none
 // ==/UserScript==
 (function () {
     /**
