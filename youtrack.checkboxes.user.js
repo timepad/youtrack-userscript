@@ -5,7 +5,7 @@
 // @namespace      https://github.com/timepad/youtrack-userscript
 // @downloadURL    https://github.com/timepad/youtrack-userscript/raw/master/youtrack.checkboxes.user.js
 // @updateURL      https://github.com/timepad/youtrack-userscript/raw/master/youtrack.checkboxes.user.js
-// @include        https://timepad.myjetbrains.com/youtrack/issue/TP-*
+// @include        https://timepad.myjetbrains.com/youtrack/issue/*
 // @grant          none
 // ==/UserScript==
 (function () {
@@ -495,11 +495,11 @@
     class ApiClient {
         constructor() {
             let url = window.location.href,
-                match = url.match(/TP-\d+/);
+                match = url.match(/issue\/(\w+-\d+)/);
 
             // если смогли понять, что за тикет
-            if (match && match[0]) {
-                let issue = match[0];
+            if (match && match[1]) {
+                let issue = match[1];
 
                 this.baseUrl = `https://timepad.myjetbrains.com/youtrack/rest/issue/${issue}`;
             } else {
