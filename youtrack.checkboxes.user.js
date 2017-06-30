@@ -594,8 +594,11 @@
                         .forEach(c => issue.comments.push({id: c.id, text: c.getAttribute('text')}));
 
                     // теперь находим summary и description
-                    issue.summary = xhr.responseXML.querySelector('field[name="summary"] value').innerHTML;
-                    issue.description = xhr.responseXML.querySelector('field[name="description"] value').innerHTML;
+                    let summary = xhr.responseXML.querySelector('field[name="summary"] value'),
+                        description = xhr.responseXML.querySelector('field[name="description"] value');
+
+                    issue.summary = summary ? summary.innerHTML : '';
+                    issue.description = description ? description.innerHTML : '';
 
                     // запоминаем, понадобится при сохранении описания
                     this.issue = issue;
